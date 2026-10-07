@@ -4,7 +4,7 @@ if(!twitch&&!kick)return;
 const done=new WeakSet(),queue=[];let running=0,enabled=true,platformEnabled=true;const MAX=2;
 const debug={detected:0,sent:0,success:0,fail:0,lastText:"",lastError:""};
 async function report(){
-  try{await chrome.runtime.sendMessage({type:"CONTENT_DEBUG",stats:{...debug,platform:twitch?"twitch":"kick"}})}catch(e){debug.fail++;debug.lastError=e?.message||String(e);report()}
+  try{await chrome.runtime.sendMessage({type:"CONTENT_DEBUG",stats:{...debug,platform:twitch?"twitch":"kick"}})}catch(e){debug.lastError=e?.message||String(e)}
 }
 
 const norm=s=>String(s||"").replace(/\s+/g," ").trim();
@@ -20,7 +20,7 @@ function textOf(n){
 function add(t){const b=document.createElement("div");b.dataset.translatedByExtension="1";b.textContent="↳ "+t;b.style.cssText="margin-top:2px;padding:2px 0;font-size:.92em;line-height:1.3;opacity:.82;direction:rtl;unicode-bidi:plaintext;white-space:pre-wrap";return b}
 async function process(x){const {node,text}=x;if(!node.isConnected||done.has(node))return;done.add(node);try{debug.sent++;
     const r=await chrome.runtime.sendMessage({type:"TRANSLATE",text});if(!r?.ok){debug.fail++;debug.lastError=r?.error||"unknown error";return;}
-    if(!node.isConnected)return;const target=twitch?(node.querySelector('[data-a-target="chat-line-message-body"],.chat-line__message--body')||node):node;if(target.querySelector?.('[data-translated-by-extension]'))return;target.appendChild(add(r.translated));debug.success++;report()}catch(_){}}
+    if(!node.isConnected)return;const target=twitch?(node.querySelector('[data-a-target="chat-line-message-body"],.chat-line__message--body')||node):node;if(target.querySelector?.('[data-translated-by-extension]'))return;target.appendChild(add(r.translated));debug.success++;report()}catch(e){debug.fail++;debug.lastError=e?.message||String(e);report()}}
 function pump(){while(running<MAX&&queue.length){running++;process(queue.shift()).finally(()=>{running--;pump()})}}
 function inspect(n){if(!enabled||!platformEnabled||!(n instanceof Element)||n.hasAttribute("data-translated-by-extension"))return;const t=textOf(n);if(!shouldTranslate(t))return;if(n.children.length>60&&!n.matches('[data-a-target="chat-line-message"],.chat-line__message'))return;debug.detected++;
   debug.lastText=t.slice(0,120);
