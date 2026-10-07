@@ -1,7 +1,16 @@
 (()=>{
 const host=location.hostname;
-const twitch=host.includes("twitch.tv");
-const kick=host.includes("kick.com");
+const autoTwitch=host.includes("twitch.tv");
+const autoKick=host.includes("kick.com");
+
+let selectedPlatform=null;
+try{
+  const saved=await chrome.storage.sync.get({selectedPlatform:"auto"});
+  selectedPlatform=saved.selectedPlatform||"auto";
+}catch{}
+
+const twitch=selectedPlatform==="twitch" || (selectedPlatform==="auto" && autoTwitch);
+const kick=selectedPlatform==="kick" || (selectedPlatform==="auto" && autoKick);
 if(!twitch&&!kick)return;
 
 const PLATFORM=twitch?"twitch":"kick";
@@ -58,7 +67,7 @@ function shouldTranslate(t){
 function cleanMessageElement(el){
   if(!el)return "";
   const c=el.cloneNode(true);
-  c.querySelectorAll([
+  c.querySelectorAll(
     '[data-translated-by-extension]',
     'button','img','svg',
     '[aria-hidden="true"]',
@@ -74,7 +83,7 @@ function cleanMessageElement(el){
     '[class*="author"]',
     '[class*="badge"]',
     '[class*="emote"]'
-  ].forEach(e=>e.remove());
+  ).forEach(e=>e.remove());
   return norm(c.innerText||c.textContent);
 }
 
