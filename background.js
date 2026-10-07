@@ -54,6 +54,10 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
     (async()=>{const r=await chrome.storage.local.get({debugStats:stats});sendResponse({ok:true,stats:r.debugStats})})();
     return true;
   }
+  if(message?.type==="CONTENT_DEBUG"){
+    (async()=>{const incoming=message.stats||{};await chrome.storage.local.set({contentDebug:incoming});sendResponse({ok:true})})();
+    return true;
+  }
   if(message?.type==="DEBUG_RESET"){
     (async()=>{await chrome.storage.local.set({debugStats:{requests:0,success:0,fail:0,lastError:"",lastAt:Date.now()}});sendResponse({ok:true})})();
     return true;
