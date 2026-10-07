@@ -1,6 +1,12 @@
 const BING={base:"https://www.bing.com/ttranslatev3",tokenPage:"https://www.bing.com/translator"};
 let bingToken=null,translateCount=0;
 const cache=new Map();
+const stats={requests:0,success:0,fail:0,lastError:"",lastAt:0};
+async function saveStats(patch={}){
+  Object.assign(stats,patch,{lastAt:Date.now()});
+  await chrome.storage.local.set({debugStats:{...stats}});
+}
+
 
 function parseTokenPage(html){
   const ig=html.match(/IG:"([^"]+)"/i)||html.match(/"ig":"([^"]+)"/i);
@@ -44,13 +50,28 @@ async function bingTranslate(text){
 }
 
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
+  if(message?.type==="GET_DEBUG"){
+    (async()=>{const r=await chrome.storage.local.get({debugStats:stats});sendResponse({ok:true,stats:r.debugStats})})();
+    return true;
+  }
+  if(message?.type==="DEBUG_RESET"){
+    (async()=>{await chrome.storage.local.set({debugStats:{requests:0,success:0,fail:0,lastError:"",lastAt:Date.now()}});sendResponse({ok:true})})();
+    return true;
+  }
   if(message?.type!=="TRANSLATE")return;
   (async()=>{
     try{
       const text=String(message.text||"").trim();
+      await saveStats({requests:stats.requests+1});
       if(!text)throw new Error("Empty text");
-      sendResponse({ok:true,translated:await bingTranslate(text)});
-    }catch(e){sendResponse({ok:false,error:e.message||String(e)})}
+      const translated=await bingTranslate(text);
+      await saveStats({success:stats.success+1,lastError:""});
+      sendResponse({ok:true,translated});
+    }catch(e){
+      const error=e.message||String(e);
+      await saveStats({fail:stats.fail+1,lastError:error});
+      sendResponse({ok:false,error});
+    }
   })();
   return true;
 });
