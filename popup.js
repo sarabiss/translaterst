@@ -13,11 +13,8 @@ async function injectCurrentTab(){
     const tabs=await chrome.tabs.query({active:true,currentWindow:true});
     const tab=tabs[0];
     if(!tab?.id)throw new Error("تب فعال پیدا نشد");
-    const url=tab.url||"";
-    if(!/^https:\/\/(www\.)?(twitch\.tv|kick\.com)(\/|$)/i.test(url)&&
-       !/^https:\/\/[^/]+\.(twitch\.tv|kick\.com)(\/|$)/i.test(url)){
-      throw new Error("این تب Twitch یا Kick نیست");
-    }
+    const selected=$("selectedPlatform").value||"auto";
+    if(selected==="auto" && !/twitch\\.tv|kick\\.com/i.test(tab.url||"")) throw new Error("لطفاً Twitch یا Kick را دستی انتخاب کن");
     await chrome.scripting.executeScript({target:{tabId:tab.id},files:["content.js"]});
     setTimeout(loadContentState,500);
   }catch(e){
