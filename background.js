@@ -10,7 +10,7 @@ async function saveStats(patch={}){
 
 function parseTokenPage(html){
   const ig=html.match(/IG:"([^"]+)"/i)||html.match(/"ig":"([^"]+)"/i);
-  const iid=html.match(/data-iid="([^"]+)"/i)||html.match(/data-iid='([^']+)'/i);
+  const iidMatches=[...html.matchAll(/data-iid="([^"]+)"/gi)];const iid=iidMatches[iidMatches.length-1]||html.match(/data-iid='([^']+)'/i);
   const helper=html.match(/params_AbusePreventionHelper\s*=\s*([^\]]+\])/i)||html.match(/params_AbusePreventionHelper\s*:\s*([^\]]+\])/i);
   if(!ig||!iid||!helper)throw new Error("Bing credentials not found");
   let a;
