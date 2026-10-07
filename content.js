@@ -38,6 +38,12 @@ function badge(){
 
 const norm=s=>String(s||"").replace(/\s+/g," ").trim();
 
+function stripLeadingTime(s){
+  return norm(s)
+    .replace(/^\s*(?:[0-2]?\d:[0-5]\d(?::[0-5]\d)?)(?:\s*(?:AM|PM|am|pm|صبح|بعدازظهر|بعد از ظهر))?\s*/,"")
+    .replace(/^\s*(?:[۰-۲]?[۰-۹]:[۰-۵][۰-۹](?::[۰-۵][۰-۹])?)(?:\s*(?:صبح|بعدازظهر|بعد از ظهر))?\s*/,"");
+}
+
 async function load(){
   const s=await chrome.storage.sync.get({enabled:true,twitchEnabled:true,kickEnabled:true});
   enabled=!!s.enabled;
@@ -75,7 +81,7 @@ function cleanMessageElement(el){
     '[class*="userName"],[class*="message-author"],[class*="author"],' +
     '[class*="badge"],[class*="emote"]'
   ).forEach(e=>e.remove());
-  return norm(c.innerText||c.textContent);
+  return stripLeadingTime(c.innerText||c.textContent);
 }
 
 function textOf(n){
@@ -112,7 +118,7 @@ function textOf(n){
 
   const c=n.cloneNode(true);
   c.querySelectorAll("button,img,svg,[data-translated-by-extension],[aria-hidden=true]").forEach(e=>e.remove());
-  return norm(c.innerText||c.textContent);
+  return stripLeadingTime(c.innerText||c.textContent);
 }
 
 function add(t){
