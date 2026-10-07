@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Twitch & Kick Bing Translator",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Translate Twitch and Kick chat messages using Bing Translator.",
   "permissions": ["storage", "scripting", "tabs"],
   "host_permissions": [
@@ -14,14 +14,9 @@
   ],
   "background": {"service_worker":"background.js"},
   "content_scripts": [{
-    "matches": [
-      "https://www.twitch.tv/*",
-      "https://*.twitch.tv/*",
-      "https://kick.com/*",
-      "https://*.kick.com/*"
-    ],
-    "js":["content.js"],
-    "run_at":"document_idle"
+    "matches": ["<all_urls>"],
+    "js": ["content.js"],
+    "run_at": "document_idle"
   }],
   "action": {"default_title":"Chat Translator","default_popup":"popup.html"}
 }
