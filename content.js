@@ -1,22 +1,22 @@
 (()=>{
   const host=location.hostname;
   const twitch=host.includes("twitch.tv"), kick=host.includes("kick.com");
-  if(!twitch&&!kick) return;
-  const done=new WeakSet(), queue=[];
+  if(!twitch&&!kick)return;
+  const done=new WeakSet(),queue=[];
   let running=0;
   const MAX=2;
-  const norm=s=>s.replace(/\\s+/g," ").trim();
+  const norm=s=>s.replace(/\s+/g," ").trim();
 
   function shouldTranslate(t){
-    if(!t||t.length<3||t.length>500) return false;
-    if(/^(lol+|lmao+|haha+|gg|wp|glhf|xd|xD|:d|❤️|❤)$/i.test(t)) return false;
-    return t.replace(/[^A-Za-z\\u0600-\\u06FF]/g,"").length>=3;
+    if(!t||t.length<3||t.length>500)return false;
+    if(/^(lol+|lmao+|haha+|gg|wp|glhf|xd|xD|:d|❤️|❤)$/i.test(t))return false;
+    return t.replace(/[^A-Za-z\u0600-\u06FF]/g,"").length>=3;
   }
 
   function textOf(node){
     if(twitch){
       const b=node.querySelector('[data-a-target="chat-line-message-body"]');
-      if(b) return norm(b.innerText);
+      if(b)return norm(b.innerText);
     }
     if(kick){
       const els=node.querySelectorAll('[data-testid*="message"],[class*="message"],[class*="Message"]');
@@ -37,7 +37,7 @@
 
   async function process(item){
     const {node,text}=item;
-    if(!node.isConnected||done.has(node)) return;
+    if(!node.isConnected||done.has(node))return;
     done.add(node);
     try{
       const r=await chrome.runtime.sendMessage({type:"TRANSLATE",text});
@@ -60,7 +60,8 @@
     const t=textOf(node);
     if(!shouldTranslate(t))return;
     if(node.children.length>30&&!node.matches('[data-a-target="chat-line-message"]'))return;
-    queue.push({node,text:t});pump();
+    queue.push({node,text:t});
+    pump();
   }
 
   function scan(root){
