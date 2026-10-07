@@ -21,10 +21,11 @@ async function getBingToken(){
 }
 
 async function bingTranslate(text){
-  const key="fa|"+text;
+  const {targetLang="fa"}=await chrome.storage.sync.get({targetLang:"fa"});
+  const key=targetLang+"|"+text;
   if(cache.has(key))return cache.get(key);
   const t=await getBingToken();
-  const body=new URLSearchParams({text,fromLang:"auto-detect",to:(await chrome.storage.sync.get({targetLang:"fa"})).targetLang,token:t.token,key:t.key});
+  const body=new URLSearchParams({text,fromLang:"auto-detect",to:targetLang,token:t.token,key:t.key});
   const u=new URL(BING.base);
   u.searchParams.set("IG",t.IG);
   u.searchParams.set("IID",t.IID+"."+(translateCount++));
