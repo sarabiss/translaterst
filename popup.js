@@ -1,9 +1,9 @@
-const defaults={enabled:true,twitchEnabled:true,kickEnabled:true};
+const defaults={enabled:true,twitchEnabled:true,kickEnabled:true,selectedPlatform:"auto"};
 const $=id=>document.getElementById(id);
-async function load(){const s=await chrome.storage.sync.get(defaults);$("enabled").checked=!!s.enabled;$("twitchEnabled").checked=!!s.twitchEnabled;$("kickEnabled").checked=!!s.kickEnabled;render();}
+async function load(){const s=await chrome.storage.sync.get(defaults);$("enabled").checked=!!s.enabled;$("twitchEnabled").checked=!!s.twitchEnabled;$("kickEnabled").checked=!!s.kickEnabled;$("selectedPlatform").value=s.selectedPlatform||"auto";render();}
 function render(){const on=$("enabled").checked;$("statusText").textContent=on?"فعال":"خاموش";$("statusDot").classList.toggle("on",on);}
-async function save(){await chrome.storage.sync.set({enabled:$("enabled").checked,targetLang:"fa",twitchEnabled:$("twitchEnabled").checked,kickEnabled:$("kickEnabled").checked});render();}
-["enabled","twitchEnabled","kickEnabled"].forEach(id=>$(id).addEventListener("change",save));
+async function save(){await chrome.storage.sync.set({enabled:$("enabled").checked,targetLang:"fa",twitchEnabled:$("twitchEnabled").checked,kickEnabled:$("kickEnabled").checked,selectedPlatform:$("selectedPlatform").value});render();}
+["enabled","twitchEnabled","kickEnabled","selectedPlatform"].forEach(id=>$(id).addEventListener("change",save));
 load();
 
 async function injectCurrentTab(){
