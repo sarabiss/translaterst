@@ -1,4 +1,4 @@
-(()=>{
+(async()=>{
 const host=location.hostname;
 const autoTwitch=host.includes("twitch.tv");
 const autoKick=host.includes("kick.com");
