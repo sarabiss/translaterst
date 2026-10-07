@@ -1,33 +1,158 @@
 (()=>{
-const host=location.hostname,twitch=host.includes("twitch.tv"),kick=host.includes("kick.com");
+const host=location.hostname;
+const twitch=host.includes("twitch.tv");
+const kick=host.includes("kick.com");
 if(!twitch&&!kick)return;
-const done=new WeakSet(),queue=[];let running=0,enabled=true,platformEnabled=true;const MAX=2;
-const debug={detected:0,sent:0,success:0,fail:0,lastText:"",lastError:""};
+
+const PLATFORM=twitch?"twitch":"kick";
+const state={platform:PLATFORM,host,url:location.href,loadedAt:Date.now(),detected:0,sent:0,success:0,fail:0,lastText:"",lastError:""};
+const done=new WeakSet(),queue=[];
+let running=0,enabled=true,platformEnabled=true;
+const MAX=2;
+
 async function report(){
-  try{await chrome.runtime.sendMessage({type:"CONTENT_DEBUG",stats:{...debug,platform:twitch?"twitch":"kick"}})}catch(e){debug.lastError=e?.message||String(e)}
+  try{
+    await chrome.storage.local.set({contentState:{...state,lastReportAt:Date.now()}});
+    await chrome.runtime.sendMessage({type:"CONTENT_DEBUG",stats:{...state,lastReportAt:Date.now()}});
+  }catch(e){state.lastError=e?.message||String(e)}
+}
+
+function badge(){
+  const old=document.getElementById("chat-translator-debug-badge");
+  if(old)old.remove();
+  const b=document.createElement("div");
+  b.id="chat-translator-debug-badge";
+  b.textContent="Translator ✓ "+PLATFORM;
+  b.style.cssText="position:fixed;z-index:2147483647;left:10px;bottom:10px;padding:5px 9px;border-radius:8px;background:#111827;color:#86efac;font:11px Arial,sans-serif;box-shadow:0 2px 10px #0008;pointer-events:none;opacity:.9";
+  (document.body||document.documentElement).appendChild(b);
 }
 
 const norm=s=>String(s||"").replace(/\s+/g," ").trim();
-async function load(){const s=await chrome.storage.sync.get({enabled:true,twitchEnabled:true,kickEnabled:true});enabled=s.enabled;platformEnabled=twitch?s.twitchEnabled:s.kickEnabled}
-load();
-chrome.storage.onChanged.addListener((c,a)=>{if(a!=="sync")return;if(c.enabled)enabled=!!c.enabled.newValue;if(twitch&&c.twitchEnabled)platformEnabled=!!c.twitchEnabled.newValue;if(kick&&c.kickEnabled)platformEnabled=!!c.kickEnabled.newValue});
-function shouldTranslate(t){if(!t||t.length<3||t.length>1000)return false;if(/^(lol+|lmao+|haha+|gg|wp|glhf|xd|xD|:d|❤️|❤)$/i.test(t))return false;return t.replace(/[^A-Za-z\u0600-\u06FF\u00C0-\u024F]/g,"").length>=3}
-function textOf(n){
-  if(twitch){const b=n.querySelector('[data-a-target="chat-line-message-body"],.chat-line__message--body');if(b)return norm(b.innerText)}
-  if(kick){const els=n.querySelectorAll('[data-testid*="message"],[data-testid*="chat-message"],[class*="chat-message"],[class*="chatMessage"],[class*="ChatMessage"],[class*="message-content"],[class*="MessageContent"]');for(const e of els){const t=norm(e.innerText);if(t)return t}}
-  const c=n.cloneNode(true);c.querySelectorAll("button,img,svg,[data-translated-by-extension],[aria-hidden=true]").forEach(e=>e.remove());return norm(c.innerText)
+
+async function load(){
+  const s=await chrome.storage.sync.get({enabled:true,twitchEnabled:true,kickEnabled:true});
+  enabled=!!s.enabled;
+  platformEnabled=twitch?!!s.twitchEnabled:!!s.kickEnabled;
+  report();
 }
-function add(t){const b=document.createElement("div");b.dataset.translatedByExtension="1";b.textContent="↳ "+t;b.style.cssText="margin-top:2px;padding:2px 0;font-size:.92em;line-height:1.3;opacity:.82;direction:rtl;unicode-bidi:plaintext;white-space:pre-wrap";return b}
-async function process(x){const {node,text}=x;if(!node.isConnected||done.has(node))return;done.add(node);try{debug.sent++;
-    const r=await chrome.runtime.sendMessage({type:"TRANSLATE",text});if(!r?.ok){debug.fail++;debug.lastError=r?.error||"unknown error";return;}
-    if(!node.isConnected)return;const target=twitch?(node.querySelector('[data-a-target="chat-line-message-body"],.chat-line__message--body')||node):node;if(target.querySelector?.('[data-translated-by-extension]'))return;target.appendChild(add(r.translated));debug.success++;report()}catch(e){debug.fail++;debug.lastError=e?.message||String(e);report()}}
-function pump(){while(running<MAX&&queue.length){running++;process(queue.shift()).finally(()=>{running--;pump()})}}
-function inspect(n){if(!enabled||!platformEnabled||!(n instanceof Element)||n.hasAttribute("data-translated-by-extension"))return;const t=textOf(n);if(!shouldTranslate(t))return;if(n.children.length>60&&!n.matches('[data-a-target="chat-line-message"],.chat-line__message'))return;debug.detected++;
-  debug.lastText=t.slice(0,120);
-  queue.push({node:n,text:t});pump()}
-function scan(r){if(!(r instanceof Element))return;inspect(r);r.querySelectorAll?.(twitch?'[data-a-target="chat-line-message"],.chat-line__message':'[data-testid*="message"],[data-testid*="chat-message"],[class*="chat-message"],[class*="chatMessage"],[class*="ChatMessage"],[class*="message-content"],[class*="MessageContent"]').forEach(inspect)}
-new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(scan))).observe(document.documentElement,{childList:true,subtree:true});
+load();
+
+chrome.storage.onChanged.addListener((c,a)=>{
+  if(a!=="sync")return;
+  if(c.enabled)enabled=!!c.enabled.newValue;
+  if(twitch&&c.twitchEnabled)platformEnabled=!!c.twitchEnabled.newValue;
+  if(kick&&c.kickEnabled)platformEnabled=!!c.kickEnabled.newValue;
+});
+
+function shouldTranslate(t){
+  if(!t||t.length<3||t.length>1000)return false;
+  if(/^(lol+|lmao+|haha+|gg|wp|glhf|xd|xD|:d|❤️|❤)$/i.test(t))return false;
+  return t.replace(/[^A-Za-z\u0600-\u06FF\u00C0-\u024F]/g,"").length>=3;
+}
+
+function textOf(n){
+  if(twitch){
+    const b=n.matches?.('[data-a-target="chat-line-message-body"],.chat-line__message--body')
+      ? n : n.querySelector?.('[data-a-target="chat-line-message-body"],.chat-line__message--body');
+    if(b)return norm(b.innerText||b.textContent);
+  }
+  if(kick){
+    const direct=n.matches?.('[data-index]')
+      ? n
+      : n.querySelector?.('[data-index]');
+    if(direct){
+      const body=direct.querySelector('.break-words,.message-text,[class*="message-text"],[class*="break-words"]')||direct;
+      const t=norm(body.innerText||body.textContent);
+      if(t)return t;
+    }
+    const els=n.querySelectorAll?.('[data-testid*="message"],[data-testid*="chat-message"],[data-message-id],.chat-message,.chat-line,[class*="chat-message"],[class*="chatMessage"]')||[];
+    for(const e of els){
+      const t=norm(e.innerText||e.textContent);
+      if(t)return t;
+    }
+  }
+  const c=n.cloneNode(true);
+  c.querySelectorAll("button,img,svg,[data-translated-by-extension],[aria-hidden=true]").forEach(e=>e.remove());
+  return norm(c.innerText||c.textContent);
+}
+
+function add(t){
+  const b=document.createElement("div");
+  b.dataset.translatedByExtension="1";
+  b.textContent="↳ "+t;
+  b.style.cssText="margin-top:2px;padding:2px 0;font-size:.92em;line-height:1.3;opacity:.82;direction:rtl;unicode-bidi:plaintext;white-space:pre-wrap";
+  return b;
+}
+
+async function process(x){
+  const {node,text}=x;
+  if(!node.isConnected||done.has(node))return;
+  done.add(node);
+  try{
+    state.sent++;
+    const r=await chrome.runtime.sendMessage({type:"TRANSLATE",text});
+    if(!r?.ok){
+      state.fail++;
+      state.lastError=r?.error||"unknown error";
+      report();
+      return;
+    }
+    if(!node.isConnected)return;
+    let target;
+    if(twitch){
+      target=node.querySelector?.('[data-a-target="chat-line-message-body"],.chat-line__message--body')||node;
+    }else{
+      target=node.querySelector?.('.break-words,.message-text,[class*="message-text"],[class*="break-words"]')||node;
+    }
+    if(target.querySelector?.('[data-translated-by-extension]'))return;
+    target.appendChild(add(r.translated));
+    state.success++;
+    report();
+  }catch(e){
+    state.fail++;
+    state.lastError=e?.message||String(e);
+    report();
+  }
+}
+
+function pump(){
+  while(running<MAX&&queue.length){
+    running++;
+    process(queue.shift()).finally(()=>{running--;pump()});
+  }
+}
+
+function inspect(n){
+  if(!enabled||!platformEnabled||!(n instanceof Element)||n.hasAttribute("data-translated-by-extension"))return;
+  const t=textOf(n);
+  if(!shouldTranslate(t))return;
+  if(twitch && n.children.length>60 && !n.matches('[data-a-target="chat-line-message"],.chat-line__message'))return;
+  state.detected++;
+  state.lastText=t.slice(0,120);
+  queue.push({node:n,text:t});
+  pump();
+}
+
+const twitchRows='[data-a-target="chat-line-message"],.chat-line__message';
+const kickRows='#chatroom-messages > div > [data-index],#chatroom-messages [data-index],[data-message-id],.chat-message,.chat-line';
+
+function scan(root){
+  if(!(root instanceof Element))return;
+  inspect(root);
+  root.querySelectorAll?.(twitch?twitchRows:kickRows).forEach(inspect);
+}
+
+function startObserver(){
+  const root=kick?(document.querySelector("#chatroom-messages,#chat-list-content,#channel-chatroom")||document.documentElement):document.documentElement;
+  new MutationObserver(ms=>{
+    for(const m of ms){
+      for(const n of m.addedNodes)scan(n);
+    }
+  }).observe(root,{childList:true,subtree:true});
+  scan(root);
+}
+
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>{badge();startObserver();report()});
+else{badge();startObserver();report()}
 setInterval(report,3000);
-scan(document.body);
-report();
 })();
