@@ -143,7 +143,7 @@ function scan(root){
 }
 
 function startObserver(){
-  const root=kick?(document.querySelector("#chatroom-messages,#chat-list-content,#channel-chatroom")||document.documentElement):document.documentElement;
+  const root=document.documentElement;
   new MutationObserver(ms=>{
     for(const m of ms){
       for(const n of m.addedNodes)scan(n);
