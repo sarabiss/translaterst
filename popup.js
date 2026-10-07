@@ -17,3 +17,23 @@ async function loadDebug(){
 $("resetDebug").addEventListener("click",async()=>{await chrome.runtime.sendMessage({type:"DEBUG_RESET"});loadDebug()});
 loadDebug();
 setInterval(loadDebug,1000);
+
+async function loadContentState(){
+  const x=await chrome.storage.local.get({contentState:null});
+  const s=x.contentState;
+  if(!s){$("contentState").textContent="صفحه Twitch/Kick شناسایی نشده";return}
+  const age=Math.round((Date.now()-(s.lastReportAt||s.loadedAt||Date.now()))/1000);
+  $("contentState").textContent="Content: "+s.platform+" ✓ | پیام: "+(s.detected||0)+" | "+(age<10?"فعال":"قدیمی");
+}
+$("testBing").addEventListener("click",async()=>{
+  $("testBing").disabled=true;
+  $("debugError").textContent="در حال تست Bing…";
+  try{
+    const r=await chrome.runtime.sendMessage({type:"TRANSLATE",text:"Hello, this is a Bing Translator test."});
+    $("debugError").textContent=r?.ok?"Bing OK: "+r.translated:"Bing ERROR: "+(r?.error||"unknown error");
+    loadDebug();
+  }catch(e){$("debugError").textContent="Bing ERROR: "+e.message}
+  finally{$("testBing").disabled=false}
+});
+loadContentState();
+setInterval(loadContentState,1000);
