@@ -79,8 +79,30 @@ function textOf(n){
 function add(t){
   const b=document.createElement("div");
   b.dataset.translatedByExtension="1";
-  b.textContent="↳ "+t;
-  b.style.cssText="margin-top:2px;padding:2px 0;font-size:.92em;line-height:1.3;opacity:.82;direction:rtl;unicode-bidi:plaintext;white-space:pre-wrap";
+  b.lang="fa";
+  b.dir="rtl";
+  b.textContent="ترجمه: "+t;
+  b.style.cssText=[
+    "display:block",
+    "width:100%",
+    "box-sizing:border-box",
+    "margin-top:5px",
+    "padding:6px 9px",
+    "border-right:3px solid #8b5cf6",
+    "border-radius:5px",
+    "background:rgba(139,92,246,.08)",
+    "color:#f1f5f9",
+    "font-family:Tahoma,Arial,sans-serif",
+    "font-size:14px",
+    "font-weight:500",
+    "line-height:1.8",
+    "text-align:right",
+    "direction:rtl",
+    "unicode-bidi:plaintext",
+    "white-space:pre-wrap",
+    "word-break:normal",
+    "overflow-wrap:anywhere"
+  ].join(";");
   return b;
 }
 
