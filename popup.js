@@ -3,8 +3,15 @@ async function loadDebug(){
   try{
     const r=await chrome.runtime.sendMessage({type:"GET_DEBUG"});
     const s=r?.stats||{};
-    ["detected","sent","success","fail"].forEach(k=>$(k).textContent=s[k]||0);
-    $("debugError").textContent=s.lastError?("آخرین خطا: "+s.lastError):"خطایی ثبت نشده";
+    const c=await chrome.storage.local.get({contentDebug:null});
+    const cs=c.contentDebug||{};
+    const detected=cs.detected||0;
+    const sent=cs.sent||0;
+    const success=Math.max(s.success||0,cs.success||0);
+    const fail=(s.fail||0)+(cs.fail||0);
+    ["detected","sent","success","fail"].forEach(k=>$(k).textContent=({detected,sent,success,fail})[k]);
+    const err=s.lastError||cs.lastError;
+    $("debugError").textContent=err?("آخرین خطا: "+err):"خطایی ثبت نشده";
   }catch(e){$("debugError").textContent="Debug unavailable: "+e.message}
 }
 $("resetDebug").addEventListener("click",async()=>{await chrome.runtime.sendMessage({type:"DEBUG_RESET"});loadDebug()});
