@@ -16,7 +16,7 @@ if(!twitch&&!kick)return;
 const PLATFORM=twitch?"twitch":"kick";
 const state={platform:PLATFORM,host,url:location.href,loadedAt:Date.now(),detected:0,sent:0,success:0,fail:0,lastText:"",lastError:""};
 const done=new WeakSet(),queue=[];
-let running=0,enabled=true,platformEnabled=true;
+let running=0,enabled=true,platformEnabled=true,translationFontSize=14;
 const MAX=2;
 
 async function report(){
@@ -45,9 +45,10 @@ function stripLeadingTime(s){
 }
 
 async function load(){
-  const s=await chrome.storage.sync.get({enabled:true,twitchEnabled:true,kickEnabled:true});
+  const s=await chrome.storage.sync.get({enabled:true,twitchEnabled:true,kickEnabled:true,translationFontSize:14});
   enabled=!!s.enabled;
   platformEnabled=twitch?!!s.twitchEnabled:!!s.kickEnabled;
+  translationFontSize=Math.min(24,Math.max(12,Number(s.translationFontSize)||14));
   report();
 }
 load();
@@ -57,6 +58,10 @@ chrome.storage.onChanged.addListener((c,a)=>{
   if(c.enabled)enabled=!!c.enabled.newValue;
   if(twitch&&c.twitchEnabled)platformEnabled=!!c.twitchEnabled.newValue;
   if(kick&&c.kickEnabled)platformEnabled=!!c.kickEnabled.newValue;
+  if(c.translationFontSize){
+    translationFontSize=Math.min(24,Math.max(12,Number(c.translationFontSize.newValue)||14));
+    document.querySelectorAll("[data-translated-by-extension]").forEach(e=>e.style.fontSize=translationFontSize+"px");
+  }
 });
 
 function shouldTranslate(t){
@@ -138,7 +143,7 @@ function add(t){
     "background:rgba(139,92,246,.08)",
     "color:#f1f5f9",
     "font-family:Tahoma,Arial,sans-serif",
-    "font-size:14px",
+    "font-size:"+translationFontSize+"px",
     "font-weight:500",
     "line-height:1.8",
     "text-align:right",
