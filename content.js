@@ -50,27 +50,66 @@ function shouldTranslate(t){
   return t.replace(/[^A-Za-z\u0600-\u06FF\u00C0-\u024F]/g,"").length>=3;
 }
 
+/*
+ * فقط متن واقعی پیام را برمی‌گرداند.
+ * timestamp / username / badge / buttons / عناصر ترجمه قبلی
+ * نباید وارد متن ارسالی به Bing شوند.
+ */
+function cleanMessageElement(el){
+  if(!el)return "";
+  const c=el.cloneNode(true);
+  c.querySelectorAll([
+    '[data-translated-by-extension]',
+    'button','img','svg',
+    '[aria-hidden="true"]',
+    '[data-testid*="timestamp"]',
+    '[data-testid*="username"]',
+    '[data-testid*="user"]',
+    '[class*="timestamp"]',
+    '[class*="time"]',
+    '[class*="username"]',
+    '[class*="user-name"]',
+    '[class*="userName"]',
+    '[class*="message-author"]',
+    '[class*="author"]',
+    '[class*="badge"]',
+    '[class*="emote"]'
+  ].forEach(e=>e.remove());
+  return norm(c.innerText||c.textContent);
+}
+
 function textOf(n){
   if(twitch){
     const b=n.matches?.('[data-a-target="chat-line-message-body"],.chat-line__message--body')
       ? n : n.querySelector?.('[data-a-target="chat-line-message-body"],.chat-line__message--body');
-    if(b)return norm(b.innerText||b.textContent);
+    if(b)return cleanMessageElement(b);
   }
+
   if(kick){
-    const direct=n.matches?.('[data-index]')
-      ? n
-      : n.querySelector?.('[data-index]');
+    const direct=n.matches?.('[data-index]') ? n : n.querySelector?.('[data-index]');
     if(direct){
-      const body=direct.querySelector('.break-words,.message-text,[class*="message-text"],[class*="break-words"]')||direct;
-      const t=norm(body.innerText||body.textContent);
+      const body=direct.querySelector(
+        '.break-words,.message-text,[class*="message-text"],[class*="break-words"]'
+      );
+      if(body){
+        const t=cleanMessageElement(body);
+        if(t)return t;
+      }
+
+      // fallback: از خود ردیف پیام metadata را حذف کن
+      const t=cleanMessageElement(direct);
       if(t)return t;
     }
-    const els=n.querySelectorAll?.('[data-testid*="message"],[data-testid*="chat-message"],[data-message-id],.chat-message,.chat-line,[class*="chat-message"],[class*="chatMessage"]')||[];
+
+    const els=n.querySelectorAll?.(
+      '[data-testid*="message"],[data-testid*="chat-message"],[data-message-id],.chat-message,.chat-line,[class*="chat-message"],[class*="chatMessage"]'
+    )||[];
     for(const e of els){
-      const t=norm(e.innerText||e.textContent);
+      const t=cleanMessageElement(e);
       if(t)return t;
     }
   }
+
   const c=n.cloneNode(true);
   c.querySelectorAll("button,img,svg,[data-translated-by-extension],[aria-hidden=true]").forEach(e=>e.remove());
   return norm(c.innerText||c.textContent);
@@ -81,7 +120,7 @@ function add(t){
   b.dataset.translatedByExtension="1";
   b.lang="fa";
   b.dir="rtl";
-  b.textContent="ترجمه: "+t;
+  b.textContent=t;
   b.style.cssText=[
     "display:block",
     "width:100%",
