@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Twitch & Kick Bing Translator",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Translate Twitch and Kick chat messages using Bing Translator.",
   "permissions": ["storage", "scripting", "tabs"],
   "host_permissions": [
