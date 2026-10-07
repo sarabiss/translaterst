@@ -68,21 +68,12 @@ function cleanMessageElement(el){
   if(!el)return "";
   const c=el.cloneNode(true);
   c.querySelectorAll(
-    '[data-translated-by-extension]',
-    'button','img','svg',
-    '[aria-hidden="true"]',
-    '[data-testid*="timestamp"]',
-    '[data-testid*="username"]',
-    '[data-testid*="user"]',
-    '[class*="timestamp"]',
-    '[class*="time"]',
-    '[class*="username"]',
-    '[class*="user-name"]',
-    '[class*="userName"]',
-    '[class*="message-author"]',
-    '[class*="author"]',
-    '[class*="badge"]',
-    '[class*="emote"]'
+    '[data-translated-by-extension],button,img,svg,' +
+    '[aria-hidden="true"],' +
+    '[data-testid*="timestamp"],[data-testid*="username"],[data-testid*="user"],' +
+    '[class*="timestamp"],[class*="time"],[class*="username"],[class*="user-name"],' +
+    '[class*="userName"],[class*="message-author"],[class*="author"],' +
+    '[class*="badge"],[class*="emote"]'
   ).forEach(e=>e.remove());
   return norm(c.innerText||c.textContent);
 }
@@ -91,7 +82,7 @@ function textOf(n){
   if(twitch){
     const b=n.matches?.('[data-a-target="chat-line-message-body"],.chat-line__message--body')
       ? n : n.querySelector?.('[data-a-target="chat-line-message-body"],.chat-line__message--body');
-    if(b)return cleanMessageElement(b);
+    return b ? cleanMessageElement(b) : "";
   }
 
   if(kick){
